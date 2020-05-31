@@ -1,0 +1,16 @@
+# ---- Add this section to the automations.yaml file in Home Assistant ----
+
+# ---- Volume slider automation ----
+
+- id: '1590287899999'
+  alias: Bedroom Volume
+  trigger:
+  - entity_id: input_number.slider1
+    platform: state
+  action:
+  - data_template:
+      payload: '{{ states.input_number.slider1.state | int }}'
+      retain: true
+      topic: audio/volume
+    service: mqtt.publish
+  initial_state: true
