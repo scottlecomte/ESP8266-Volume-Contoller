@@ -1,16 +1,19 @@
+//ESP32 Code
+
 //* This code is for a line level Wi-Fi volume controller to be used with Home Assiatant *//
 
-
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <PubSubClient.h>
+#include <SPI.h>
 
 // Update these variables.
 
-const char* ssid = "........"; // Your SSID 
-const char* password = "........"; // Your Wi-Fi password
-const char* mqtt_server = "........"; // Your MQTT broker
-const char* mqtt_topic = "audio/volume"; // You can leave this topic or change if you would like If you change, you will need to update your Home Assistant automation topic
-const char* mqtt_client_id = "Volume-controller"; // Name for this device on your MQTT network
+const char* ssid = "........."; // Your SSID 
+const char* password = "........."; // Your Wi-Fi password
+const char* mqtt_server = "..........."; // Your MQTT broker
+const char* mqtt_topic = "............"; // You can leave this topic or change if you would like If you change, you will need to update your Home Assistant automation topic
+const char* mqtt_client_id = ".............."; // Name for this device on your MQTT network
+int ChipSelect = 5; // SS or CS Pin (GPIO) on your board. On the ESP32 DEVKIT C V4, the CS pin in GPIO5
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -40,24 +43,24 @@ void setup_wifi() {
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.println();
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
 
-  // Change volume and cycle LED - this is where logic goes to change based on mqtt data
-  
-  if ((char)payload[0] > 50) {
-    digitalWrite(BUILTIN_LED, LOW);   // Turn the LED on (Note that LOW is the voltage level
-    // but actually the LED is on; this is because
-    // it is active low on the ESP-01)
-  } else {
-    digitalWrite(BUILTIN_LED, HIGH);  // Turn the LED off by making the voltage HIGH
-  }
+   payload[length] = '\0'; // Add a NULL to the end of the char* to make it a string.
+   int volume = atoi((char *)payload);
+   
+  Serial.print(volume);
+  writeMCP4241(0,volume);
+  writeMCP4241(1,volume);
+}
 
+void writeMCP4241(byte address, char value) {
+  digitalWrite(ChipSelect, LOW); 
+  SPI.transfer(address << 4);
+  SPI.transfer(value & 127);
+  digitalWrite(ChipSelect, HIGH);
 }
 
 void reconnect() {
@@ -82,11 +85,15 @@ void reconnect() {
 }
 
 void setup() {
-  pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output for testing
+  pinMode(ChipSelect, OUTPUT); 
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+  Serial.println(SS);
+  Serial.println(MISO);
+  Serial.println(SCK);
+  SPI.begin();
 }
 
 void loop() {
@@ -95,5 +102,4 @@ void loop() {
     reconnect();
   }
   client.loop();
-  
 }
