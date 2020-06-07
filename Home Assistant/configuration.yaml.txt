@@ -12,6 +12,6 @@ input_number:
     icon: mdi:speaker
     initial: 30
     min: 1
-    max: 100
+    max: 127
     step: 1
     unit_of_measurement: "%"  
